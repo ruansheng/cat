@@ -9,15 +9,18 @@ import (
 )
 
 type Http struct {
-	Data            string            //原数据
-	Method          string            //请求方法
-	HttpUrl         string            //请求URL
-	HttpVersion     string            //来源请求HTTP版本 example: HTTP/1.1
-	SHeaders        map[string]string //来源请求头
-	SFormData       string            //来源请求体
-	ResponseHeaders map[string]string //响应头
-	ResponseData    string            //响应数据
-	ReturnData      string            //返回代理请求后的数据
+	Data               string              //原数据
+	Method             string              //请求方法
+	HttpUrl            string              //请求URL
+	HttpVersion        string              //来源请求HTTP版本 example: HTTP/1.1
+	SourceHeaders      map[string]string   //来源请求头
+	SourceFormData     string              //来源请求体
+	ResponseStatus     string              //响应状结果e.g. "200 OK"
+	ResponseStatusCode int                 //响应状态码e.g. 200
+	ResponseProto      string              //响应状协议版本e.g. "HTTP/1.0"
+	ResponseHeaders    map[string][]string //响应头
+	ResponseData       string              //响应数据
+	ReturnData         string              //返回代理请求后的数据
 }
 
 func (this *Http) Send() {
@@ -27,7 +30,7 @@ func (this *Http) Send() {
 
 func (this *Http) parseResquest() {
 	lines := strings.Split(this.Data, "\r\n")
-	this.SHeaders = make(map[string]string)
+	this.SourceHeaders = make(map[string]string)
 	for index, line := range lines {
 		if index == 0 {
 			this.parseResquestLine(line)
@@ -49,7 +52,7 @@ func (this *Http) parseResquestLine(line string) {
 func (this *Http) parseResquestHeader(line string) {
 	fields := strings.Split(line, ":")
 	if len(fields) == 2 {
-		this.SHeaders[fields[0]] = fields[1]
+		this.SourceHeaders[fields[0]] = fields[1]
 	}
 }
 
@@ -60,8 +63,8 @@ func (this *Http) parseResquestBody(line string) {
 	formData.Add("password", "123")
 	data := formData.Encode()
 
-	this.SFormData = line
-	this.SFormData = data
+	this.SourceFormData = line
+	this.SourceFormData = data
 }
 
 func (this *Http) sendResquest() {
@@ -82,8 +85,8 @@ func (this *Http) Request() {
 	//提交请求
 	var req *http.Request
 	var err error
-	if this.SFormData != "" {
-		req, err = http.NewRequest(this.Method, this.HttpUrl, strings.NewReader(this.SFormData))
+	if this.SourceFormData != "" {
+		req, err = http.NewRequest(this.Method, this.HttpUrl, strings.NewReader(this.SourceFormData))
 	} else {
 		req, err = http.NewRequest(this.Method, this.HttpUrl, nil)
 	}
@@ -93,19 +96,22 @@ func (this *Http) Request() {
 	}
 
 	// 设置请求头
-	for key, val := range this.SHeaders {
+	for key, val := range this.SourceHeaders {
 		req.Header.Set(key, val)
 	}
 
 	//处理返回结果
 	response, _ := client.Do(req)
 
-	body := response.Body
-	respheader := response.Header
-
-	fmt.Println("body", body)
-	fmt.Println("respheader", respheader)
+	this.ResponseStatusCode = response.StatusCode
+	this.ResponseStatus = response.Status
+	this.ResponseProto = response.Proto
+	this.ResponseHeaders = response.Header
 
 	reponseData, _ := ioutil.ReadAll(response.Body)
-	fmt.Println(string(reponseData), err)
+	this.ResponseData = string(reponseData)
+}
+
+func (this *Http) GetReturnData() string {
+	return this.ResponseData
 }

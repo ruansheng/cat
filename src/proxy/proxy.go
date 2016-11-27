@@ -47,7 +47,9 @@ func (this *Proxy) Channal(client *net.TCPConn) {
 		http := new(Http)
 		http.Data = string(buf[:n])
 		http.Send()
-		client.Write([]byte(http.ReturnData))
+		data := http.GetReturnData()
+		fmt.Println(data)
+		client.Write([]byte(data))
 		break
 	}
 	client.Close()

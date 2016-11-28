@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -29,14 +28,18 @@ func (this *Http) Send() {
 }
 
 func (this *Http) parseResquest() {
-	lines := strings.Split(this.Data, "\r\n")
-	this.SourceHeaders = make(map[string]string)
-	for index, line := range lines {
-		if index == 0 {
-			this.parseResquestLine(line)
-		} else {
-			this.parseResquestHeader(line)
+	fields := strings.Split(this.Data, "\r\n\r\n")
+	if len(fields) == 2 {
+		lines := strings.Split(fields[0], "\r\n")
+		this.SourceHeaders = make(map[string]string)
+		for index, line := range lines {
+			if index == 0 {
+				this.parseResquestLine(line)
+			} else {
+				this.parseResquestHeader(line)
+			}
 		}
+		this.parseResquestBody(fields[1])
 	}
 }
 
@@ -57,14 +60,9 @@ func (this *Http) parseResquestHeader(line string) {
 }
 
 func (this *Http) parseResquestBody(line string) {
-	//请求数据
-	formData := url.Values{}
-	formData.Add("username", "ruansheng")
-	formData.Add("password", "123")
-	data := formData.Encode()
-
-	this.SourceFormData = line
-	this.SourceFormData = data
+	if line != "" {
+		this.SourceFormData = line
+	}
 }
 
 func (this *Http) sendResquest() {
@@ -113,5 +111,19 @@ func (this *Http) Request() {
 }
 
 func (this *Http) GetReturnData() string {
-	return this.ResponseData
+	line := this.getResponseLine()
+	header := this.getResponseHeader()
+	return fmt.Sprintf("%s\r\n%s\r\n\r\n%s", line, header, this.ResponseData)
+}
+
+func (this *Http) getResponseLine() string {
+	return fmt.Sprintf("%s %s", this.ResponseProto, this.ResponseStatus)
+}
+
+func (this *Http) getResponseHeader() string {
+	var headers []string
+	for key, val := range this.ResponseHeaders {
+		headers = append(headers, fmt.Sprintf("%s:%s", key, val[0]))
+	}
+	return strings.Join(headers, "\r\n")
 }

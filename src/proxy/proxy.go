@@ -17,7 +17,7 @@ func (this *Proxy) NewProxy(ip string, port int) error {
 		fmt.Println("listen error: ", err.Error())
 		return err
 	}
-	fmt.Println("init done...")
+	fmt.Println("init ok...")
 
 	this.ip = ip
 	this.port = port
@@ -44,11 +44,19 @@ func (this *Proxy) Channal(client *net.TCPConn) {
 			break
 		}
 
+		//打印请求
+		fmt.Println(string(buf[:n]))
+
+		//执行代理请求
 		http := new(Http)
 		http.Data = string(buf[:n])
 		http.Send()
 		data := http.GetReturnData()
+
+		//打印响应
 		fmt.Println(data)
+
+		//返回请求结果
 		client.Write([]byte(data))
 		break
 	}

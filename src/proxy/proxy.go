@@ -43,6 +43,8 @@ func (this *Proxy) Channal(client *net.TCPConn) {
 		if err != nil {
 			break
 		}
+		//打印请求原始数据
+		fmt.Println(buf[:n])
 
 		//打印请求
 		fmt.Println(string(buf[:n]))

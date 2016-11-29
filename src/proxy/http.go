@@ -127,7 +127,3 @@ func (this *Http) getResponseHeader() string {
 	}
 	return strings.Join(headers, "\r\n")
 }
-
-func test() {
-	err := http.ListenAndServeTLS(":8080", "cert.pem", "key.pem", nil)
-}
